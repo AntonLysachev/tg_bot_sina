@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "tb-bot-sina"
+version = "0.1.0"
+description = ""
+authors = ["AntonLysachev <anton@lysachev.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Flask = "^3.0.2"
+pyTelegramBotAPI = "^4.16.1"
+python-dotenv = "^1.0.1"
+gunicorn = "^21.2.0"
+requests = "^2.31.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
