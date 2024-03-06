@@ -10,7 +10,7 @@ def save(phone, chat_id):
             inserted_phone = cursor.fetchone()
             return inserted_phone[0]
     except (Exception) as error:
-        print(error)
+        raise error
 
 
 def get_phone(chat_id):
@@ -19,7 +19,7 @@ def get_phone(chat_id):
             cursor.execute('SELECT phone FROM USERS WHERE chat_id=%s', (chat_id,))
             data = cursor.fetchone()
     except (Exception) as error:
-        print(error)
+        raise error
     return data
 
 
