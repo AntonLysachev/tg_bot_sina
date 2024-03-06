@@ -50,6 +50,8 @@ def start(message):
 @bot.message_handler(content_types=['contact'])
 def handle_contact(message):
     phone_number = message.contact.phone_number
+    chat_id = message.chat.id
+    save(phone_number, chat_id)
     bot.send_message(message.chat.id, f"Спасибо! Ваш номер телефона: {phone_number}")
 
 
