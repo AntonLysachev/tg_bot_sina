@@ -93,7 +93,7 @@ def index():
     return 'OK', 200
 
 
-if __name__ == "__main__" or __name__ =='bot.app':
+if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=URL)
     app.run(debug=DEBUG_SWITCH)
