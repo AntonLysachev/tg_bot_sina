@@ -18,7 +18,6 @@ def get_phone(chat_id):
         with get_connection().cursor() as cursor:
             cursor.execute('SELECT phone FROM USERS WHERE chat_id=%s', (chat_id,))
             data = cursor.fetchone()
-
     except (Exception) as error:
         print(error)
     return data
