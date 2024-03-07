@@ -83,7 +83,10 @@ def handle_manual_number(message):
     markup.add(button_yes, button_no)
     phone_number = message.text
     chat_id = message.chat.id
-    error = save(phone_number, chat_id)    
+    error = save(phone_number, chat_id)
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print(error.pgerror)
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     if 'chat_id' in error.pgerror:
         phone_number = get_phone(chat_id)[0]
         bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
