@@ -35,6 +35,7 @@ def to_present(phone):
         return count
     return 4
 
+
 def get_client_id(phone):
     response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={TOKEN_POSTER}&phone={phone}')
     return response.json()['response'][0]['client_id']
@@ -58,16 +59,16 @@ def handle_contact(message):
     phone_number = message.contact.phone_number
     chat_id = message.chat.id
     error = save(phone_number, chat_id)
-    if 'chat_id' in error.pgerror:
-        phone_number = get_phone(chat_id)[0]
-        bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
-    if 'phone' in error.pgerror:
-        bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе.")
-        bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
-        bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
-        return
+    if error:
+        if 'chat_id' in error:
+            phone_number = get_phone(chat_id)[0]
+            bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
+            return
+        if 'phone' in error:
+            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе.")
+            bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
+            bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
     bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
-
 
 
 @bot.message_handler(func=lambda message: message.text == "Ввести номер вручную")
@@ -84,14 +85,15 @@ def handle_manual_number(message):
     phone_number = message.text
     chat_id = message.chat.id
     error = save(phone_number, chat_id)
-    if 'chat_id' in error.pgerror:
-        phone_number = get_phone(chat_id)[0]
-        bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
-    if 'phone' in error.pgerror:
-        bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить онформацию?")
-        bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
-        bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
-        return
+    if error:
+        if 'chat_id' in error:
+            phone_number = get_phone(chat_id)[0]
+            bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
+            return
+        if 'phone' in error:
+            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить онформацию?")
+            bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
+            bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
 
     bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
 

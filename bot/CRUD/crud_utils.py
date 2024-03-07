@@ -7,10 +7,9 @@ def save(phone, chat_id):
             cursor = connection.cursor()
             cursor.execute('INSERT INTO users (phone, chat_id) VALUES (%s,%s)', (phone, chat_id))
             connection.commit()
-            inserted_phone = cursor.fetchone()
-            return inserted_phone[0]
     except (Exception) as error:
-        return error
+        return error.pgerror
+    return False
 
 
 def get_phone(chat_id):
@@ -34,7 +33,7 @@ def update(phone, chat_id):
     except (Exception) as error:
         return error
     
-    
+
 # def get_table(table_name):
 #     query = sql.SQL(GET_TABLE).format(sql.Identifier(table_name))
 #     try:
