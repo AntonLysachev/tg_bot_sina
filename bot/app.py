@@ -83,15 +83,16 @@ def handle_manual_number(message):
     markup.add(button_yes, button_no)
     phone_number = message.text
     chat_id = message.chat.id
-    error = save(phone_number, chat_id)
+    error = save(phone_number, chat_id)    
+    if 'chat_id' in error.pgerror:
+        phone_number = get_phone(chat_id)[0]
+        bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
     if 'phone' in error.pgerror:
         bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить онформацию?")
         bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
         bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
         return
-    if 'chat_id' in error.pgerror:
-        phone_number = get_phone(chat_id)[0]
-        bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
+
     bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
 
 
