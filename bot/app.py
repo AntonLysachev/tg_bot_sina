@@ -14,7 +14,9 @@ URL_POSTER=os.getenv('URL_POSTER')
 TOKEN = os.getenv('TOKEN')
 URL = os.getenv('URL')
 DEBUG_SWITCH = os.getenv('DEBUG_SWITCH')
-
+print('!!!!!!!!!!!!')
+print(TOKEN_POSTER)
+print('!!!!!!!!!!!!')
 
 bot = TeleBot(TOKEN, threaded=False)
 app = Flask(__name__)
@@ -40,8 +42,6 @@ def to_present(phone):
 
 def get_client_id(phone):
     response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={TOKEN_POSTER}&phone={phone}')
-    print('!!!!!!!!!!')
-    print(response.json())
     return response.json()['response'][0]['client_id']
 
 
