@@ -8,6 +8,7 @@ from bot.CRUD.crud_utils import save, get_phone, update
 
 
 load_dotenv()
+
 TOKEN_POSTER=os.getenv('TOKEN_POSTER')
 URL_POSTER=os.getenv('URL_POSTER')
 TOKEN = os.getenv('TOKEN')
@@ -39,6 +40,8 @@ def to_present(phone):
 
 def get_client_id(phone):
     response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={TOKEN_POSTER}&phone={phone}')
+    print('!!!!!!!!!!')
+    print(response)
     return response.json()['response'][0]['client_id']
 
 
