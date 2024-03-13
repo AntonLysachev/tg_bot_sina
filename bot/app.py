@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request
-import telebot
+from telebot import types, TeleBot, logger
 from dotenv import load_dotenv
 import logging
 import requests
@@ -15,11 +15,12 @@ URL = os.getenv('URL')
 DEBUG_SWITCH = os.getenv('DEBUG_SWITCH')
 
 
-bot = telebot.TeleBot(TOKEN, threaded=False)
+bot = TeleBot(TOKEN, threaded=False)
 app = Flask(__name__)
-logger = telebot.logger
+logger = logger
 logger.setLevel(logging.DEBUG)
 
+user_data = {}
 
 def to_present(phone):
     count = 0
@@ -43,66 +44,72 @@ def get_client_id(phone):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button_phone = telebot.types.KeyboardButton(text="Отправить номер телефона", request_contact=True)
-    button_manual = telebot.types.KeyboardButton(text="Ввести номер вручную")
+    markup = types.InlineKeyboardMarkup()
+    button_phone = types.InlineKeyboardButton(text="Отправить номер телефона", callback_data='send_phone')
+    button_manual = types.InlineKeyboardButton(text="Ввести номер вручную", callback_data='enter_phone_manual')
     markup.add(button_phone, button_manual)
     bot.send_message(message.chat.id, "Укажите номер телефона каторый зарегестрирован в системе дружбы SINA", reply_markup=markup)
-  
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def send_contact(call):
+    chat_id = call.message.chat.id
+    phone_number = user_data.get(chat_id)
+    if call.data == 'send_phone':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        button_phone = types.KeyboardButton(text="Отправить", request_contact=True)
+        markup.add(button_phone)
+        bot.send_message(chat_id, "Нажмите кнопку ниже, чтобы отправить ваш номер телефона.", reply_markup=markup)
+    elif call.data == 'enter_phone_manual':
+        bot.send_message(chat_id, "Введите номер телефона в формате +998123456789")
+    elif call.data == 'yes' and phone_number:
+        update(phone_number, chat_id)
+        bot.send_message(chat_id, "Информация обновлена.", reply_markup=types.ReplyKeyboardRemove())
+    elif call.data == 'no':
+        bot.send_message(chat_id, "Спасибо.")
+    bot.answer_callback_query(call.id)
+
 
 @bot.message_handler(content_types=['contact'])
 def handle_contact(message):
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button_yes = telebot.types.KeyboardButton(text="Да")
-    button_no = telebot.types.KeyboardButton(text="Нет")
+    markup = types.InlineKeyboardMarkup()
+    button_yes = types.InlineKeyboardButton(text="Да", callback_data='yes')
+    button_no = types.InlineKeyboardButton(text="Нет", callback_data='no')
     markup.add(button_yes, button_no)
     phone_number = message.contact.phone_number
     chat_id = message.chat.id
     error = save(phone_number, chat_id)
     if error:
         if 'chat_id' in error:
-            phone_number = get_phone(chat_id)[0]
-            bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
+            bot.send_message(message.chat.id, f"Вы уже зарегестрированы", reply_markup=types.ReplyKeyboardRemove())
             return
         if 'phone' in error:
-            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе.")
+            user_data[chat_id] = phone_number
+            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить информацию?")
             bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
-            bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
+            return
     bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
-
-
-@bot.message_handler(func=lambda message: message.text == "Ввести номер вручную")
-def handle_manual_input(message):
-    bot.send_message(message.chat.id, "Введите номер телефона в формате +998123456789")
 
 
 @bot.message_handler(regexp=r'^\+\d{12}$')
 def handle_manual_number(message):
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button_yes = telebot.types.KeyboardButton(text=f"Да")
-    button_no = telebot.types.KeyboardButton(text="Нет")
+    markup = types.InlineKeyboardMarkup()
+    button_yes = types.InlineKeyboardButton(text="Да", callback_data='yes')
+    button_no = types.InlineKeyboardButton(text="Нет", callback_data='no')
     markup.add(button_yes, button_no)
     phone_number = message.text
     chat_id = message.chat.id
     error = save(phone_number, chat_id)
     if error:
         if 'chat_id' in error:
-            phone_number = get_phone(chat_id)[0]
             bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
             return
         if 'phone' in error:
-            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить онформацию?")
+            user_data[chat_id] = phone_number
+            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить информацию?")
             bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
-            bot.register_next_step_handler(message, lambda message: update_chat_id(message, phone_number))
-
+            return
     bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
-
-
-def update_chat_id(message, phone_number):
-    if message.text == 'Да':
-        chat_id = message.chat.id
-        update(phone_number, chat_id)
-        bot.send_message(message.chat.id, "Информация обновлена.")
 
 
 @bot.message_handler(commands=['cups'])
@@ -119,8 +126,7 @@ def echo_message(message):
 @app.route(f'/{TOKEN}', methods=['POST'])
 def getMessage():
     json_string = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_string)
-    print(update)
+    update = types.Update.de_json(json_string)
     bot.process_new_updates([update])
     return "!", 200
 
