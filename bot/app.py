@@ -22,7 +22,7 @@ print(POSTE_TOKEN)
 print(DEBUG_SWITCH)
 print('!!!!!!!!!!!!')
 
-bot = TeleBot(TOKEN, threaded=False)
+bot = TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = Flask(__name__)
 logger = logger
 logger.setLevel(logging.DEBUG)
@@ -32,7 +32,7 @@ user_data = {}
 def to_present(phone):
     count = 0
     client_id = get_client_id(phone)
-    response = requests.get(f'https://joinposter.com/api/clients.getClient?format=json&token={TOKEN_POSTER}&client_id={client_id}')
+    response = requests.get(f'https://joinposter.com/api/clients.getClient?format=json&token={POSTE_TOKEN}&client_id={client_id}')
     accumulation_products = response.json()['response'][0]['accumulation_products']
     prize_products = response.json()['response'][0]['prize_products']
     if prize_products:
@@ -45,7 +45,7 @@ def to_present(phone):
 
 
 def get_client_id(phone):
-    response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={TOKEN_POSTER}&phone={phone}')
+    response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={POSTE_TOKEN}&phone={phone}')
     return response.json()['response'][0]['client_id']
 
 
@@ -130,7 +130,7 @@ def echo_message(message):
     bot.send_message(message.chat.id, message.text)
 
 
-@app.route(f'/{TOKEN}', methods=['POST'])
+@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def getMessage():
     json_string = request.get_data().decode('utf-8')
     update = types.Update.de_json(json_string)
@@ -141,12 +141,12 @@ def getMessage():
 @app.route('/')
 def index():
     bot.remove_webhook()
-    bot.set_webhook(url=URL)
+    bot.set_webhook(url=TELEGRAM_URL)
     return 'OK', 200
 
 
 if __name__ == "__main__":
     bot.remove_webhook()
-    bot.set_webhook(url=URL)
+    bot.set_webhook(url=TELEGRAM_URL)
     app.run(debug=DEBUG_SWITCH)
 
