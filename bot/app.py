@@ -41,7 +41,7 @@ def to_present(phone):
 def get_client_id(phone):
     response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={TOKEN_POSTER}&phone={phone}')
     print('!!!!!!!!!!')
-    print(response)
+    print(response.json())
     return response.json()['response'][0]['client_id']
 
 
