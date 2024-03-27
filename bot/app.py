@@ -9,10 +9,10 @@ from bot.CRUD.crud_utils import save, get_phone, update
 
 load_dotenv()
 
-POSTE_TOKEN=os.getenv('TOKEN_POSTER')
-POSTER_URL=os.getenv('URL_POSTER')
-TELEGRAM_TOKEN = os.getenv('TOKEN')
-TELEGRAM_URL = os.getenv('URL')
+POSTE_TOKEN=os.getenv('POSTE_TOKEN')
+POSTER_URL=os.getenv('POSTER_URL')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_URL = os.getenv('TELEGRAM_URL')
 DEBUG_SWITCH = os.getenv('DEBUG_SWITCH')
 print('!!!!!!!!!!!!')
 print(POSTER_URL)
