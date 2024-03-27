@@ -4,7 +4,7 @@ from telebot import types, TeleBot, logger
 from dotenv import load_dotenv
 import logging
 import requests
-from bot.CRUD.crud_utils import save, get_phone, update
+from bot.CRUD.crud_utils import save, get_phone, update, get_client
 
 
 load_dotenv()
@@ -14,34 +14,34 @@ POSTER_URL=os.getenv('POSTER_URL')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_URL = os.getenv('TELEGRAM_URL')
 DEBUG_SWITCH = os.getenv('DEBUG_SWITCH')
-print('!!!!!!!!!!!!')
-print(POSTER_URL)
-print(TELEGRAM_TOKEN)
-print(TELEGRAM_URL)
-print(POSTE_TOKEN)
-print(DEBUG_SWITCH)
-print('!!!!!!!!!!!!')
 
 bot = TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = Flask(__name__)
 logger = logger
 logger.setLevel(logging.DEBUG)
 
-user_data = {}
 
 def to_present(phone):
     count = 0
+    present_info = {
+        'to_cup': 0,
+        'cups': 0
+    }
+
     client_id = get_client_id(phone)
     response = requests.get(f'https://joinposter.com/api/clients.getClient?format=json&token={POSTE_TOKEN}&client_id={client_id}')
     accumulation_products = response.json()['response'][0]['accumulation_products']
     prize_products = response.json()['response'][0]['prize_products']
-    if prize_products:
-        return count
+
+    present_info['cups'] = len(prize_products)
+
     if accumulation_products:
         for cup in accumulation_products['4']['products']:
-            count = 4 - cup['count']
-        return count
-    return 4
+            count += cup['count']
+
+    present_info['to_cup'] = 4 - count
+
+    return present_info
 
 
 def get_client_id(phone):
@@ -51,17 +51,26 @@ def get_client_id(phone):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.InlineKeyboardMarkup()
-    button_phone = types.InlineKeyboardButton(text="Отправить номер телефона", callback_data='send_phone')
-    button_manual = types.InlineKeyboardButton(text="Ввести номер вручную", callback_data='enter_phone_manual')
-    markup.add(button_phone, button_manual)
-    bot.send_message(message.chat.id, "Укажите номер телефона каторый зарегестрирован в системе дружбы SINA", reply_markup=markup)
+    name = message.from_user.first_name
+    chat_id = message.chat.id
+    exist = get_client(chat_id)
+    if not exist:
+        markup = types.InlineKeyboardMarkup()
+        button_phone = types.InlineKeyboardButton(text="Отправить номер телефона", callback_data='send_phone')
+        button_manual = types.InlineKeyboardButton(text="Ввести номер вручную", callback_data='enter_phone_manual')
+        markup.add(button_phone, button_manual)
+        bot.send_message(chat_id, "Укажите номер телефона каторый зарегестрирован в системе дружбы SINA", reply_markup=markup)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        button_yes = types.InlineKeyboardButton(text="Да", callback_data='yes')
+        button_no = types.InlineKeyboardButton(text="Нет", callback_data='no')
+        markup.add(button_yes, button_no)
+        bot.send_message(chat_id, f'Добрый день {name}, вы зарегестрированы с номером телефона {exist["phone"]}. Хотите обновить информацию?', reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def send_contact(call):
     chat_id = call.message.chat.id
-    phone_number = user_data.get(chat_id)
     if call.data == 'send_phone':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         button_phone = types.KeyboardButton(text="Отправить", request_contact=True)
@@ -69,9 +78,12 @@ def send_contact(call):
         bot.send_message(chat_id, "Нажмите кнопку ниже, чтобы отправить ваш номер телефона.", reply_markup=markup)
     elif call.data == 'enter_phone_manual':
         bot.send_message(chat_id, "Введите номер телефона в формате +998123456789")
-    elif call.data == 'yes' and phone_number:
-        update(phone_number, chat_id)
-        bot.send_message(chat_id, "Информация обновлена.", reply_markup=types.ReplyKeyboardRemove())
+    elif call.data == 'yes':
+        markup = types.InlineKeyboardMarkup()
+        button_phone = types.InlineKeyboardButton(text="Отправить номер телефона", callback_data='send_phone')
+        button_manual = types.InlineKeyboardButton(text="Ввести номер вручную", callback_data='enter_phone_manual')
+        markup.add(button_phone, button_manual)
+        bot.send_message(chat_id, "Укажите номер телефона каторый зарегестрирован в системе дружбы SINA", reply_markup=markup)
     elif call.data == 'no':
         bot.send_message(chat_id, "Спасибо.")
     bot.answer_callback_query(call.id)
@@ -79,50 +91,35 @@ def send_contact(call):
 
 @bot.message_handler(content_types=['contact'])
 def handle_contact(message):
-    markup = types.InlineKeyboardMarkup()
-    button_yes = types.InlineKeyboardButton(text="Да", callback_data='yes')
-    button_no = types.InlineKeyboardButton(text="Нет", callback_data='no')
-    markup.add(button_yes, button_no)
     phone_number = message.contact.phone_number
     chat_id = message.chat.id
-    error = save(phone_number, chat_id)
-    if error:
-        if 'chat_id' in error:
-            bot.send_message(message.chat.id, f"Вы уже зарегестрированы", reply_markup=types.ReplyKeyboardRemove())
-            return
-        if 'phone' in error:
-            user_data[chat_id] = phone_number
-            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить информацию?")
-            bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
-            return
-    bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
+    exist = get_client(chat_id)
+    if exist:
+        update(phone_number, chat_id)
+        bot.send_message(chat_id, "Информация обновлена.")
+    else:
+        save(phone_number, chat_id)
+        bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
 
 
 @bot.message_handler(regexp=r'^\+\d{12}$')
 def handle_manual_number(message):
-    markup = types.InlineKeyboardMarkup()
-    button_yes = types.InlineKeyboardButton(text="Да", callback_data='yes')
-    button_no = types.InlineKeyboardButton(text="Нет", callback_data='no')
-    markup.add(button_yes, button_no)
     phone_number = message.text
     chat_id = message.chat.id
-    error = save(phone_number, chat_id)
-    if error:
-        if 'chat_id' in error:
-            bot.send_message(message.chat.id, f"Вы уже зарегестрированы")
-            return
-        if 'phone' in error:
-            user_data[chat_id] = phone_number
-            bot.send_message(message.chat.id, f"Номер: {phone_number}, уже есть в базе. Хотите обновить информацию?")
-            bot.send_message(message.chat.id, 'Хотите обновить онформацию?', reply_markup=markup)
-            return
-    bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
+    exist = get_client(chat_id)
+    if exist:
+        update(phone_number, chat_id)
+        bot.send_message(chat_id, "Информация обновлена.")
+    else:
+        save(phone_number, chat_id)
+        bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
 
 
 @bot.message_handler(commands=['cups'])
 def cups(message):
     phone = get_phone(message.chat.id)
-    bot.send_message(message.chat.id, f'Увас осталось {to_present(phone )} кружек до бесплатной')
+    present_info = to_present(phone)
+    bot.send_message(message.chat.id, f'У вас осталось {present_info["to_cup"]} кружек до бесплатной.\n{present_info["cups"]} накопленых кружек')
 
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])

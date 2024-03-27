@@ -1,4 +1,5 @@
 from bot.CRUD.db_util import get_connection
+from psycopg2 import extras
 
 
 def save(phone, chat_id):
@@ -8,7 +9,7 @@ def save(phone, chat_id):
             cursor.execute('INSERT INTO users (phone, chat_id) VALUES (%s,%s)', (phone, chat_id))
             connection.commit()
     except (Exception) as error:
-        return error.pgerror
+        raise error
     return False
 
 
@@ -26,13 +27,23 @@ def update(phone, chat_id):
     try:
         with get_connection() as connection:
             cursor = connection.cursor()
-            cursor.execute('UPDATE users SET chat_id = %s WHERE phone = %s', (chat_id, phone,))
+            cursor.execute('UPDATE users SET phone = %s WHERE chat_id = %s', (phone, chat_id))
             connection.commit()
             inserted_phone = cursor.fetchone()
             return inserted_phone[0]
     except (Exception) as error:
         return error
     
+
+def get_client(chat_id):
+    try:
+        with get_connection().cursor(cursor_factory=extras.DictCursor) as cursor:
+            cursor.execute('SELECT * FROM users WHERE chat_id =%s', (chat_id,))
+            data = cursor.fetchone()
+    except (Exception) as error:
+        raise error
+    return data
+ 
 
 # def get_table(table_name):
 #     query = sql.SQL(GET_TABLE).format(sql.Identifier(table_name))
