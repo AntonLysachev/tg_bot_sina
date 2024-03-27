@@ -121,12 +121,19 @@ def cups(message):
     phone = get_phone(message.chat.id)
     present_info = to_present(phone)
     if present_info['to_cup'] == 0:
-        cups = 'кружек'
+        to_cup_ending = 'кружек'
     elif present_info['to_cup'] == 1:
-        cups = 'кружка'
+        to_cup_ending = 'кружка'
     else:
-        cups = 'кружки'
-    bot.send_message(message.chat.id, f'У вас осталось {present_info["to_cup"]} {cups} до бесплатной.\n{present_info["cups"]} накопленых кружек')
+        to_cup_ending = 'кружки'
+
+    if present_info['cups'] == 0:
+        cups_ending = 'кружек'
+    elif present_info['cups'] == 1:
+        cups_ending = 'кружка'
+    else:
+        cups_ending = 'кружки'
+    bot.send_message(message.chat.id, f'У вас осталось {present_info["to_cup"]} {to_cup_ending} до бесплатной.\n{present_info["cups"]} накопленых {cups_ending}')
 
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
