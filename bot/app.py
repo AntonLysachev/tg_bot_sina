@@ -15,6 +15,7 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_URL = os.getenv('TELEGRAM_URL')
 DEBUG_SWITCH = os.getenv('DEBUG_SWITCH')
 
+
 bot = TeleBot(TELEGRAM_TOKEN, threaded=False)
 app = Flask(__name__)
 logger = logger
@@ -119,7 +120,13 @@ def handle_manual_number(message):
 def cups(message):
     phone = get_phone(message.chat.id)
     present_info = to_present(phone)
-    bot.send_message(message.chat.id, f'У вас осталось {present_info["to_cup"]} кружек до бесплатной.\n{present_info["cups"]} накопленых кружек')
+    if present_info['to_cup'] == 0:
+        cups = 'кружек'
+    elif present_info['to_cup'] == 1:
+        cups = 'кружка'
+    else:
+        cups = 'кружки'
+    bot.send_message(message.chat.id, f'У вас осталось {present_info["to_cup"]} {cups} до бесплатной.\n{present_info["cups"]} накопленых кружек')
 
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
