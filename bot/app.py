@@ -47,7 +47,10 @@ def to_present(phone):
 
 def get_client_id(phone):
     response = requests.get(f'https://joinposter.com/api/clients.getClients?format=json&token={POSTE_TOKEN}&phone={phone}')
-    return response.json()['response'][0]['client_id']
+    if response.json()['response']:
+        return response.json()['response'][0]['client_id']
+    else:
+        return response.json()['response']
 
 
 @bot.message_handler(commands=['start'])
@@ -94,26 +97,34 @@ def send_contact(call):
 def handle_contact(message):
     phone_number = message.contact.phone_number
     chat_id = message.chat.id
-    exist = get_client(chat_id)
-    if exist:
-        update(phone_number, chat_id)
-        bot.send_message(chat_id, "Информация обновлена.")
+    client_id = get_client_id(phone_number)
+    if client_id:
+        exist = get_client(chat_id)
+        if exist:
+            update(phone_number, chat_id)
+            bot.send_message(chat_id, "Информация обновлена.", reply_markup=types.ReplyKeyboardRemove())
+        else:
+            save(phone_number, chat_id)
+            bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}", reply_markup=types.ReplyKeyboardRemove())
     else:
-        save(phone_number, chat_id)
-        bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
+        bot.send_message(chat_id, f'{phone_number} - такого номера телефона в системе дружбы не найдено.\nОтправте номер телефона вручную в формате +998123456789', reply_markup=types.ReplyKeyboardRemove())
 
 
 @bot.message_handler(regexp=r'^\+\d{12}$')
 def handle_manual_number(message):
     phone_number = message.text
     chat_id = message.chat.id
-    exist = get_client(chat_id)
-    if exist:
-        update(phone_number, chat_id)
-        bot.send_message(chat_id, "Информация обновлена.")
+    client_id = get_client_id(phone_number)
+    if client_id:
+        exist = get_client(chat_id)
+        if exist:
+            update(phone_number, chat_id)
+            bot.send_message(chat_id, "Информация обновлена.")
+        else:
+            save(phone_number, chat_id)
+            bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
     else:
-        save(phone_number, chat_id)
-        bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
+        bot.send_message(chat_id, f'{phone_number} - такого номера телефона в системе дружбы не найдено.')
 
 
 @bot.message_handler(commands=['cups'])
