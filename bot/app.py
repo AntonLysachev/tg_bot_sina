@@ -22,6 +22,16 @@ logger = logger
 logger.setLevel(logging.DEBUG)
 
 
+def ending(count_cups):
+    if count_cups== 0:
+        word = 'кружек'
+    elif count_cups == 1:
+        word = 'кружка'
+    else:
+        word = 'кружки'
+    return word
+
+
 def to_present(phone):
     count = 0
     present_info = {
@@ -63,7 +73,7 @@ def start(message):
         button_phone = types.InlineKeyboardButton(text="Отправить номер телефона", callback_data='send_phone')
         button_manual = types.InlineKeyboardButton(text="Ввести номер вручную", callback_data='enter_phone_manual')
         markup.add(button_phone, button_manual)
-        bot.send_message(chat_id, "Укажите номер телефона каторый зарегестрирован в системе дружбы SINA", reply_markup=markup)
+        bot.send_message(chat_id, f"Добрый день {name}.\nУкажите номер телефона каторый зарегестрирован в системе дружбы SINA", reply_markup=markup)
     else:
         markup = types.InlineKeyboardMarkup()
         button_yes = types.InlineKeyboardButton(text="Да", callback_data='yes')
@@ -105,7 +115,7 @@ def handle_contact(message):
             bot.send_message(chat_id, "Информация обновлена.", reply_markup=types.ReplyKeyboardRemove())
         else:
             save(phone_number, chat_id)
-            bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}", reply_markup=types.ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, f"Спасибо за регистрацию в телеграм боте SINA.\nВаш номер телефона: {phone_number} в системе дружбы", reply_markup=types.ReplyKeyboardRemove())
     else:
         bot.send_message(chat_id, f'{phone_number} - такого номера телефона в системе дружбы не найдено.\nОтправте номер телефона вручную в формате +998123456789', reply_markup=types.ReplyKeyboardRemove())
 
@@ -122,7 +132,7 @@ def handle_manual_number(message):
             bot.send_message(chat_id, "Информация обновлена.")
         else:
             save(phone_number, chat_id)
-            bot.send_message(message.chat.id, f"Ваш номер телефона: {phone_number}")
+            bot.send_message(message.chat.id, f"Спасибо за регистрацию в телеграм боте SINA.\nВаш номер телефона: {phone_number}")
     else:
         bot.send_message(chat_id, f'{phone_number} - такого номера телефона в системе дружбы не найдено.')
 
@@ -131,19 +141,10 @@ def handle_manual_number(message):
 def cups(message):
     phone = get_phone(message.chat.id)
     present_info = to_present(phone)
-    if present_info['to_cup'] == 0:
-        to_cup_ending = 'кружек'
-    elif present_info['to_cup'] == 1:
-        to_cup_ending = 'кружка'
-    else:
-        to_cup_ending = 'кружки'
-
-    if present_info['cups'] == 0:
-        cups_ending = 'кружек'
-    elif present_info['cups'] == 1:
-        cups_ending = 'кружка'
-    else:
-        cups_ending = 'кружки'
+    to_cup = present_info['to_cup']
+    cups = present_info['cups']
+    to_cup_ending = ending(to_cup)
+    cups_ending = ending(cups)
     bot.send_message(message.chat.id, f'У вас осталось {present_info["to_cup"]} {to_cup_ending} до бесплатной.\n{present_info["cups"]} накопленых {cups_ending}')
 
 
